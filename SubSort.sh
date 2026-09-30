@@ -1,43 +1,65 @@
 #!/bin/bash
-RED="\e[31m"
-GREEN="\e[32m"
-BLUE="\e[34m"
-PURPLE="\e[95m"
-CYAN="\e[36m"
-YELLOW="\e[93m"
-GREY="\e[90m"
-ENDCOLOR="\e[0m"
+RD="\e[31m"
+GRN="\e[38;5;46m"
+BL="\e[34m"
+PPL="\e[95m"
+CYN="\e[36m"
+YLW="\e[93m"
+GRY="\e[90m"
+ENDC="\e[0m"
 
 if [ $# -eq 0 ]
-then
-echo -e "${RED}[XoX]${ENDCOLOR} Enter a URL & a Hostname."
-echo -e "${PURPLE}[?]${ENDCOLOR} ./SubSort.sh www.example.com example"
-else
-cat art.txt
-echo -e "Author: (${GREEN}@Brainiac0x90${ENDCOLOR})"
-echo -e "${GREY}SubSort v1.0${ENDCOLOR}"
-echo -e "\n"
-mkdir $2 && cd $2 && wget $1 2> /dev/null && echo -e "${CYAN}Domain${ENDCOLOR} --> $2\n" && cat index.html | grep -i -oE "([a-z0-9-]+\\.)+$2\\.com" | sort -u | tail -n +2 | tee subd.txt
-echo -e "\n"
-echo -e "-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_"
-echo -e "\n"
-for sub in $(cat subd.txt)
-do
-if  [[ $(ping -c 1 $sub) ]]
-then
-echo -e "[${GREEN}*${ENDCOLOR}]$sub ++++++++ ${GREEN}PONG!${ENDCOLOR}"
-echo $sub >> valid.txt
-else
-echo -e "[${RED}*${ENDCOLOR}]${GREY}$sub${ENDCOLOR} -------- ${RED}MISSED:(${ENDCOLOR}"
-fi
-done
-echo -e "\n"
-echo -e "-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_"
-echo -e "\n"
-for link in $(cat valid.txt)
-do
-  host "$link" | head -n 1 | tee -a subAliases.txt
-done
-echo -e "\n"
-echo -e "[${GREEN}+${ENDCOLOR}]${CYAN}Resualts are saved.${ENDCOLOR}"
+  then
+    echo -e "${RD}[X_X]${ENDC} Enter a URL..."
+    echo -e "${PPL}[?]${ENDC} ./SubSort.sh www.example.com"
+  else
+    Domain=$(printf '%s\n' "$1" | awk -F. '{print $2}')
+    TLD=$(printf '%s\n' "$1" | awk -F. '{print $3}')
+    cat art.txt
+    echo -e "Author: (${GRN}@Brainiac0x90${ENDC})"
+    echo -e "${GRY}Version: SubSort v2.0${ENDC}"
+    echo -e "\n"
+    mkdir -p "$Domain" &&
+    cd "$Domain" || exit 1
+
+    wget -q "$1" -O index.html 2>/dev/null || exit 1
+
+    echo -e "${CYN}Domain${ENDC} --> $Domain\n"
+    
+    echo -e "[${CYN}*${ENDC}] Searching in Homepage..."
+    
+    grep -a -i -oE "([a-z0-9-]+\.)+${Domain}\.$TLD" index.html | sort -u > subd.txt
+
+   echo -e "[${CYN}*${ENDC}] Searching in Certkit..."
+
+   curl -s "https://ct.certkit.io/search?domain=${Domain}.${TLD}" \
+     | jq -r '.results[]?.dnsNames[]?' \
+     | grep -oE "([a-zA-Z0-9-]+\.)+${Domain}\.$TLD" \
+     | sort -u >> subd.txt
+     
+    sort -u subd.txt -o subd.txt
+    cat subd.txt
+    
+    echo -e "\n"
+    echo -e "-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_"
+    echo -e "\n"
+  for sub in $(cat subd.txt)
+    do
+      if  [[ $(ping -c 1 $sub) ]]
+        then
+          echo -e "[${GRN}*${ENDC}]$sub ++++++++ ${GRN}PONG!${ENDC}"
+          echo $sub >> valid.txt
+      else
+        echo -e "[${RD}*${ENDC}]${GRY}$sub${ENDC} -------- ${RD}MISSED:(${ENDC}"
+      fi
+  done
+  echo -e "\n"
+  echo -e "-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_"
+  echo -e "\n"
+  for link in $(cat valid.txt)
+    do
+      host "$link" | head -n 1 | tee -a subhosts.txt
+  done
+  echo -e "\n"
+  echo -e "[${GRN}+${ENDC}]${CYN}Resualts are saved.${ENDC}"
 fi
